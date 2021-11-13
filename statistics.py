@@ -1,5 +1,5 @@
 import csv
-import math
+import math  # use math.sqrt() for standard deviation
 
 # read data from command line
 def get_data():
@@ -60,6 +60,7 @@ def get_data():
             elif pair == '':
                 return datos
 
+
 def freq_table(data):
     """ Returns a freq_table, following this structure:
     ['absolute', 'accumulated absolute', 'relative', 'accumulated relative']"""
@@ -94,11 +95,12 @@ def freq_table(data):
         print('Wrong type of data. Given data have no frequencies.')
 
 
+def read_csv(filename):
+    #read data from txt file
+    with open(filename, 'r') as file:
+        return file.readlines()
 
-#read data from txt file
-with open('ejercicio2.txt', 'r') as file:
-    data = file.readlines()
-#create a function to clean and prepare data
+
 def clean_data(array):
     # clean new line char and substitute comma with decimal point
     data = [i.replace('\n', '').replace(',', '.') for i in array]
@@ -178,12 +180,14 @@ def mode(data):
             if abs_freq == max_abs_freq:
                 return xi
 
+
 def var_range(data):
     if not isinstance(data):
         return max(data) - min(data)
     elif isinstance(data, dict):
         xi = data.keys()
         return max(xi) - min(xi)
+
 
 def report(data):
     print('Parámetros estadísticos de la variable x:\n')
@@ -195,4 +199,3 @@ def report(data):
     print(f'Desviación típica: {std_deviation(data):.3.f}')
     print(f'Varianza: {std_deviation(data)**2:.3.f}')
     print(f'Rango: {var_range(data)}')
-    
