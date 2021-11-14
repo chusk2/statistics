@@ -37,10 +37,14 @@ def read_from_txt(filename):
 
 
 def read_from_csv(filename):
-    with open(filename, 'r'):
-        reader = csv.reader(filename)
-        data_as_str = list(reader)
-        return clean_data(data_as_str)
+    with open(filename, 'r') as f:
+        reader = csv.reader(f)
+        # reader content is a list of list items
+        # e.g. [['128.8'], ['160'], ['192.1'], ['163.4']]
+        content = list(reader)
+        data_as_str = [i[0] for i in content]
+        data = clean_data(data_as_str)
+        return data
 
 
 def from_txt_to_csv(txt_filename, output_filename='output_dataset.csv'):
@@ -53,7 +57,19 @@ def from_txt_to_csv(txt_filename, output_filename='output_dataset.csv'):
     # func does not return anything but a csv file
 
 
-def manual_entry_data():
+def gen_csv(data, output_filename='output_dataset.csv'):
+    with open(output_filename, 'w') as f:
+        writer = csv.writer(f)
+        # check if data must be cleaned
+        if type(data[0]) == str:
+            data = clean_data(data)
+
+        rows = [[i] for i in data]
+        writer.writerows(rows)
+    # func does not return anything but a csv file
+
+
+def manual_entry_data(output_filename):
     """
     Asks repeatedly for values until no value + enter key is entered.
     Returns the list with entered data.
@@ -86,7 +102,8 @@ def manual_entry_data():
                     datos.append(num)
 
             elif num == '':
-                return datos
+                gen_csv(datos, output_filename)
+                return clean_data(datos)
 
     # datos con frecuencia absoluta
     elif data_type == '2':
@@ -112,7 +129,7 @@ def manual_entry_data():
             datos.append((xi[i], freq[i]))
         datos = sorted(datos, key=lambda j: j[0])
 
-        return datos
+        return clean_data(datos)
 
 
 def categorize_continuous_var(data):
@@ -134,22 +151,25 @@ def categorize_continuous_var(data):
           'Otherwise, enter your own values, separated by a comma.')
     answer = input('Number of intervals and their amplitude: ')
     if answer:
-        number_of_classes, class_width = answer.split(',')
+        answer.replace(' ', '')
+        answer = answer.split(',')
+        number_of_classes, class_width = [int(i) for i in answer]
 
     # generate list of classes, class mark and their absolute frequency
     data.sort()
-
+    dataset = []
     # create a list of strings with class interval
     classes_limits_str = []
     classes_limits_numbers = []
     lower_limit = min(data)
-    for i in range(1, number_of_classes + 1):
+    for i in range(number_of_classes):
         classes_limits_numbers.append((lower_limit, lower_limit + class_width))
         classes_limits_str.append(
             f'[{lower_limit}, {lower_limit + class_width})')
         # increment the lower limit by adding the class amplitud
         lower_limit += class_width
-
+    # add the intervals to returning object of function
+    dataset.append(classes_limits_str)
     # categorize values of x in the corresponding class
     data_precategorized = data.copy()
     data_categorized = []
@@ -170,47 +190,56 @@ def categorize_continuous_var(data):
     # generate list of mark classes and their absolute frequencies
     xi = []
     abs_freq = []
-    for i in range(len(data_categorized)):
-        # class mark. Average of lower and upper limit of interval
-        xi.append(classes_limits_numbers[0] + class_width / 2)
-        # absolute frequency of class
-        abs_freq.append(len(data_categorized))
-    # create a list with tuples (class mark, abs freq)
-    dataset = []
-    for i in range(len(xi)):
-        dataset.append((xi[i], abs_freq[i]))
-    # sort pairs of (value,abs freq). Use value as sorting criterium
-    dataset = sorted(dataset, key=lambda j: j[0])
+    for index, value in enumerate(data_categorized):
 
-    return classes_limits_str, dataset
+        # class mark. Average of lower and upper limit of interval
+        if class_width > 1:
+            increment = class_width / 2
+        else:
+            increment = class_width
+
+        xi.append(classes_limits_numbers[index][0] + increment)
+        if isinstance(xi[-1], float):
+            if xi[-1].is_integer():
+                xi[-1] = int(xi[-1])
+        abs_freq.append(len(value))
+
+    dataset.append(xi)
+    dataset.append(abs_freq)
+
+    return dataset
 
 
 def freq_table(data):
     """
+    Accepts a list of tuples (value, abs_freq)
     Returns a freq_table, following this structure:
     ['absolute', 'accumulated absolute', 'relative', 'accumulated relative']
     """
     # check the right type of data have been supplied
-    if isinstance(data, dict):
-        freq_table = []
+    if len(data) == 2:
+        values = data[0]
         # absolute frequencies
-        abs_freq = data.values()
+        abs_freq = data[1]
         # acumulated absolute frequencies
-        n = len(data.values())
         accum_abs_freq = []
         accumulated = 0
-        for freq in accum_abs_freq:
+        for freq in abs_freq:
             accumulated += freq
             accum_abs_freq.append(accumulated)
         # relative frequencies
-        rel_freq = [i/n for i in abs_freq]
+        N = accumulated  # sample size equals last value of accumulated abs
+        rel_freq = [(i/N) for i in abs_freq]
+
         # accumulated relative frequencies
         accum_rel_freq = []
         accumulated = 0
         for freq in rel_freq:
             accumulated += freq
             accum_rel_freq.append(accumulated)
-        
+
+        freq_table = []
+        freq_table.append(values)
         freq_table.append(abs_freq)
         freq_table.append(accum_abs_freq)
         freq_table.append(rel_freq)
@@ -295,10 +324,10 @@ def var_range(data):
 def report(data):
     print('Parámetros estadísticos de la variable x:\n')
     print(f'Media: {mean(data):.3f}')
-    print(f'Mediana: {median(data):.3.f}')
+    print(f'Mediana: {median(data):.3f}')
     # dataset with freq
     if isinstance(data, dict):
         print(f'Moda: {mode(data)}')
-    print(f'Desviación típica: {std_deviation(data):.3.f}')
-    print(f'Varianza: {std_deviation(data)**2:.3.f}')
-    print(f'Rango: {var_range(data)}')
+    print(f'Desviación típica: {std_deviation(data):.3f}')
+    print(f'Varianza: {std_deviation(data)**2:.3f}')
+    print(f'Rango: {var_range(data):.3f}')
