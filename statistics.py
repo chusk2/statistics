@@ -1,109 +1,190 @@
 import csv
-import math  # use math.sqrt() for standard deviation
-
-# read data from command line
-
-
-def continuous_var(data):
-    n = len(data)
-    number_of_classes = round(1 + 3.322 * math.log10(n))
-    class_width = (max(data) - min(data)) // number_of_classes
-    data_within_classes = []
-    data.sort()
-    classes_limits = []
-    # add the different upper limits
-    for i in range(1, number_of_classes + 1):
-        classes_limits.append(min(data) + class_width * i)
-    # categorize values of x in the corresponding class
-    for i in range(number_of_classes):
-        data_within_classes.append([])
-        for xi in data:
-            if xi <= classes_limits[i]:
-                data_within_classes[i].append(xi)
-    return data_within_classes
+# use math.sqrt() for standard deviation
+import math
 
 
-def get_data():
-    
+def clean_data(data):
+    """
+    Cleans the dataset as strings and transforms them into integer or floats
+    """
+    # clean new line char and substitute comma with decimal point
+    processed_data = [line.replace('\n', '').replace(',', '.')
+                      for line in data]
+    # transform string values into integer or float
+    for value, index in enumerate(processed_data):
+        if float(value).is_integer():
+            processed_data[index] = int(value)
+        else:
+            processed_data[index] = float(value)
+    return processed_data
+
+
+def read_from_txt(filename):
+    """
+    Reads dataset from a txt file and generates a list of data
+    """
+    # read data from txt file
+    with open(filename, 'r') as file:
+        data_as_str = file.readlines()
+    # clean the strings of data
+    data = clean_data(data_as_str)
+    return data
+
+
+def read_from_csv(filename):
+    with open(filename, 'r'):
+        reader = csv.reader(filename)
+        data_as_str = list(reader)
+        return clean_data(data_as_str)
+
+
+def from_txt_to_csv(txt_filename, output_filename='output_dataset.csv'):
+    with open(txt_filename, 'r') as f:
+        data_as_str = f.readlines()
+        clean_dataset = clean_data(data_as_str)
+    with open(output_filename, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(clean_dataset)
+    # func does not return anything but a csv file
+
+
+def manual_entry_data():
+    """
+    Asks repeatedly for values until no value + enter key is entered.
+    Returns the list with entered data.
+    """
     while True:
         print('\nOpciones:')
-        print('Datos aislados con frecuencia absoluta = 1 --> 1')
+        print('Datos aislados --> 1')
         print('Datos repetidos con frecuencia absoluta --> 2')
-        print('Variable continua --> 3')
+
         data_type = input('Tipo de datos: ')
         
-        if data_type in ('1', '2', '3'):
+        if data_type in ('1', '2'):
             break
         else:
             print('\nOpción incorrecta')
     
     print('Introduzca los datos. Pulsa "enter" sin introducir dato'
           'para finalizar entrada de datos.')
+
     # datos aislados
     if data_type == '1':
         datos = []
         while True:
             num = input('Dato: ')
             if num:
-                if not num.isalpha():
-                    # replace comma with decimal point
-                    if ',' in num:
-                        num = num.replace(',', '.')
-                    datos.append(float(num))
-            
-            elif num.isalpha():
-                print('¡Solo valores numéricos!\n')
-            
+                if num.isalpha():
+                    print('¡Solo valores numéricos!\n')
+                    continue
+                else:
+                    datos.append(num)
+
             elif num == '':
                 return datos
+
     # datos con frecuencia absoluta
     elif data_type == '2':
-        print('Introduce el valor de x y su frecuencia absoluta, separados por un espacio.')
-        datos = {}
+        print('Introduce el valor de x y su frecuencia absoluta,'
+              'separados por un espacio.')
+
         while True:
             pair = input('Dato: ')
             if pair:
                 pair = pair.split()
                 xi, freq = pair
-                if not xi.isalpha() and not freq.isalpha():
-                    # replace comma with decimal point
-                    if ',' in xi:
-                        xi = xi.replace(',', '.')
-                        xi = float(xi) if not float(xi).is_integer() else int(xi)
 
-                    if ',' in freq:
-                        freq = freq.replace(',', '.')
-                        freq = float(freq) if not float(freq).is_integer() else int(freq)
-                # store the pair: value and absolute frequency
-                datos[xi] = freq
-                        
             elif pair.isalpha():
                 print('¡Solo valores numéricos!\n')
             
             elif pair == '':
-                return datos
-    # variable continua
-    elif data_type == '3':
+                break
+        # create tuples (xi, absolute frequency)
+        xi = clean_data(xi)
+        freq = clean_data(freq)
         datos = []
-        while True:
-            num = input('Dato: ')
-            if num:
-                if not num.isalpha():
-                    # replace comma with decimal point
-                    if ',' in num:
-                        num = num.replace(',', '.')
-                    datos.append(float(num))
+        for i in range(len(xi)):
+            datos.append((xi[i], freq[i]))
+        datos = sorted(datos, key = lambda j: j[0])
 
-            elif num.isalpha():
-                print('¡Solo valores numéricos!\n')
+        return datos
 
-            elif num == '':
-                return continuous_var(datos)
+
+def categorize_continuous_var(data):
+    """
+    Process data of continuous variable.
+     Returns two lists:
+        1. [strings with intervals]
+        2. [(class mark, absolute frequency)]
+    """
+    # calculate how many classes and their amplitud using formula
+    n = len(data)
+    number_of_classes = round(1 + 3.322 * math.log10(n))
+    class_width = (max(data) - min(data)) // number_of_classes
+
+    # user defined num of classes and width
+    print(f'Suggested number of intervals is {number_of_classes} '
+          f'and interval width is {class_width}.')
+    print('If this is ok, just press enter.'
+          'Otherwise, enter your own values, separated by a comma.')
+    answer = input('Number of intervals and their amplitude: ')
+    if answer:
+        number_of_classes, class_width = answer.split(',')
+
+    # generate list of classes, class mark and their absolute frequency
+    data.sort()
+
+    # create a list of strings with class interval
+    classes_limits_str = []
+    classes_limits_numbers = []
+    lower_limit = min(data)
+    for i in range(1, number_of_classes + 1):
+        classes_limits_numbers.append((lower_limit, lower_limit + class_width))
+        classes_limits_str.append(
+            f'[{lower_limit}, {lower_limit + class_width})')
+        # increment the lower limit by adding the class amplitud
+        lower_limit += class_width
+
+    # categorize values of x in the corresponding class
+    data_precategorized = data.copy()
+    data_categorized = []
+    for interval in classes_limits_numbers:
+        data_categorized.append([])
+        lower = interval[0]
+        upper = interval[1]
+        # finish if there are no more values to categorize
+        if data_precategorized:
+            for xi, index in enumerate(data_precategorized):
+                if lower <= xi < upper:
+                    data_categorized[-1].append(xi)
+                    # remove item from precategorized dataset
+                    # next iteration of search for values within interval
+                    # will last less because values are crossed out
+                    data_precategorized.pop(index)
+
+    # generate list of mark classes and their absolute frequencies
+    xi = []
+    abs_freq = []
+    for i in range(len(data_categorized)):
+        # class mark. Average of lower and upper limit of interval
+        xi.append(classes_limits_numbers[0] + class_width / 2)
+        # absolute frequency of class
+        abs_freq.append(len(data_categorized))
+    # create a list with tuples (class mark, abs freq)
+    dataset = []
+    for i in range(len(xi)):
+        dataset.append((xi[i], abs_freq[i]))
+    # sort pairs of (value,abs freq). Use value as sorting criterium
+    dataset = sorted(dataset, key=lambda j: j[0])
+
+    return classes_limits_str, dataset
 
 
 def freq_table(data):
-    """ Returns a freq_table, following this structure:
-    ['absolute', 'accumulated absolute', 'relative', 'accumulated relative']"""
+    """
+    Returns a freq_table, following this structure:
+    ['absolute', 'accumulated absolute', 'relative', 'accumulated relative']
+    """
     # check the right type of data have been supplied
     if isinstance(data, dict):
         freq_table = []
@@ -133,29 +214,6 @@ def freq_table(data):
         return freq_table
     else:
         print('Wrong type of data. Given data have no frequencies.')
-
-
-def read_csv(filename):
-    # read data from txt file
-    with open(filename, 'r') as file:
-        return file.readlines()
-
-
-def clean_data(array):
-    # clean new line char and substitute comma with decimal point
-    data = [i.replace('\n', '').replace(',', '.') for i in array]
-    data = [float(i) for i in data]
-    data = [int(i) for i in data if i.is_integer()]
-    return data
-
-
-def gen_csv(data, output_filename='raw_data.csv'):
-    # write the data to a csv file
-    with open(output_filename, 'w') as csv_file:
-        writer = csv.writer(csv_file)
-        for line in data:
-            # every new row must be a list
-            writer.writerow([line])
 
 
 def mean(data):
