@@ -8,10 +8,15 @@ def clean_data(data):
     Cleans the dataset as strings and transforms them into integer or floats
     """
     # clean new line char and substitute comma with decimal point
-    processed_data = [line.replace('\n', '').replace(',', '.')
-                      for line in data]
+    processed_data = []
+    for line in data:
+        line.replace('\n', ' ')
+        line = line.split()
+        if line:
+            for item in line:
+                processed_data.append(item)
     # transform string values into integer or float
-    for value, index in enumerate(processed_data):
+    for index, value in enumerate(processed_data):
         if float(value).is_integer():
             processed_data[index] = int(value)
         else:
@@ -105,7 +110,7 @@ def manual_entry_data():
         datos = []
         for i in range(len(xi)):
             datos.append((xi[i], freq[i]))
-        datos = sorted(datos, key = lambda j: j[0])
+        datos = sorted(datos, key=lambda j: j[0])
 
         return datos
 
@@ -154,7 +159,7 @@ def categorize_continuous_var(data):
         upper = interval[1]
         # finish if there are no more values to categorize
         if data_precategorized:
-            for xi, index in enumerate(data_precategorized):
+            for index, xi in enumerate(data_precategorized):
                 if lower <= xi < upper:
                     data_categorized[-1].append(xi)
                     # remove item from precategorized dataset
@@ -248,7 +253,7 @@ def median(data):
         # get the relative frequencies of dataset
         accumulated_relative_freq = freq_table(data)[3]
         xi = list(data.keys())
-        for value, index in enumerate(accumulated_relative_freq):
+        for index, value in enumerate(accumulated_relative_freq):
             # find first value of x that reaches or exceeds 50% of data
             if value >= 0.5:
                 return xi[index]
