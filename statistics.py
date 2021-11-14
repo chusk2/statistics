@@ -2,20 +2,43 @@ import csv
 import math  # use math.sqrt() for standard deviation
 
 # read data from command line
+
+
+def continuous_var(data):
+    n = len(data)
+    number_of_classes = round(1 + 3.322 * math.log10(n))
+    class_width = (max(data) - min(data)) // number_of_classes
+    data_within_classes = []
+    data.sort()
+    classes_limits = []
+    # add the different upper limits
+    for i in range(1, number_of_classes + 1):
+        classes_limits.append(min(data) + class_width * i)
+    # categorize values of x in the corresponding class
+    for i in range(number_of_classes):
+        data_within_classes.append([])
+        for xi in data:
+            if xi <= classes_limits[i]:
+                data_within_classes[i].append(xi)
+    return data_within_classes
+
+
 def get_data():
     
     while True:
         print('\nOpciones:')
         print('Datos aislados con frecuencia absoluta = 1 --> 1')
         print('Datos repetidos con frecuencia absoluta --> 2')
+        print('Variable continua --> 3')
         data_type = input('Tipo de datos: ')
         
-        if data_type in ('1','2'):
+        if data_type in ('1', '2', '3'):
             break
         else:
             print('\nOpción incorrecta')
     
-    print('Introduzca los datos. Pulsa "enter" sin introducir dato para finalizar entrada de datos.')
+    print('Introduzca los datos. Pulsa "enter" sin introducir dato'
+          'para finalizar entrada de datos.')
     # datos aislados
     if data_type == '1':
         datos = []
@@ -45,12 +68,12 @@ def get_data():
                 if not xi.isalpha() and not freq.isalpha():
                     # replace comma with decimal point
                     if ',' in xi:
-                            xi = xi.replace(',', '.')
-                            xi = float(xi) if not float(xi).is_integer() else int(xi)
+                        xi = xi.replace(',', '.')
+                        xi = float(xi) if not float(xi).is_integer() else int(xi)
 
                     if ',' in freq:
-                            freq = freq.replace(',', '.')
-                            freq = float(freq) if not float(freq).is_integer() else int(freq)
+                        freq = freq.replace(',', '.')
+                        freq = float(freq) if not float(freq).is_integer() else int(freq)
                 # store the pair: value and absolute frequency
                 datos[xi] = freq
                         
@@ -59,6 +82,23 @@ def get_data():
             
             elif pair == '':
                 return datos
+    # variable continua
+    elif data_type == '3':
+        datos = []
+        while True:
+            num = input('Dato: ')
+            if num:
+                if not num.isalpha():
+                    # replace comma with decimal point
+                    if ',' in num:
+                        num = num.replace(',', '.')
+                    datos.append(float(num))
+
+            elif num.isalpha():
+                print('¡Solo valores numéricos!\n')
+
+            elif num == '':
+                return continuous_var(datos)
 
 
 def freq_table(data):
@@ -70,7 +110,7 @@ def freq_table(data):
         # absolute frequencies
         abs_freq = data.values()
         # acumulated absolute frequencies
-        n = len(data.values)
+        n = len(data.values())
         accum_abs_freq = []
         accumulated = 0
         for freq in accum_abs_freq:
@@ -96,7 +136,7 @@ def freq_table(data):
 
 
 def read_csv(filename):
-    #read data from txt file
+    # read data from txt file
     with open(filename, 'r') as file:
         return file.readlines()
 
@@ -109,9 +149,9 @@ def clean_data(array):
     return data
 
 
-def gen_csv(data, output_fllename = 'raw_data.csv'):
+def gen_csv(data, output_filename='raw_data.csv'):
     # write the data to a csv file
-    with open(output_fllename, 'w') as csv_file:
+    with open(output_filename, 'w') as csv_file:
         writer = csv.writer(csv_file)
         for line in data:
             # every new row must be a list
@@ -139,17 +179,17 @@ def median(data):
 
         # sample size is odd, take point in position n/2 + 1
         if len(data) % 2 != 0:
-            return data[(len(data) -1) // 2]
+            return data[(len(data)-1) // 2]
         # if sample size is even, take next two points to position (n-2) / 2
         elif len(data) % 2 == 0:
-            num1 = data[ (len(data) -2 ) // 2 ]
-            num2 = data[ (len(data) -2 ) // 2  +1]
+            num1 = data[(len(data)-2) // 2]
+            num2 = data[(len(data)-2) // 2+1]
             return (num1+num2)/2
     # dataset with frequencies
     elif isinstance(data, dict):
         # get the relative frequencies of dataset
         accumulated_relative_freq = freq_table(data)[3]
-        xi = data.keys()
+        xi = list(data.keys())
         for value, index in enumerate(accumulated_relative_freq):
             # find first value of x that reaches or exceeds 50% of data
             if value >= 0.5:
@@ -182,7 +222,7 @@ def mode(data):
 
 
 def var_range(data):
-    if not isinstance(data):
+    if not isinstance(data, dict):
         return max(data) - min(data)
     elif isinstance(data, dict):
         xi = data.keys()
